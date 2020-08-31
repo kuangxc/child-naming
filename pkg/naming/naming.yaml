@@ -1,0 +1,9 @@
+require: 
+  surname: 邝
+exclude: 
+  words: 坟
+  names: 
+  dirs: 
+output:
+  format: excel  # 输出文件格式
+  number: 5000 # 输出名字数量

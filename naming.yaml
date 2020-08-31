@@ -1,0 +1,9 @@
+require: 
+  surname: 邝
+exclude: 
+  words: 坟;刑;狱
+  names: 刑狱
+  dirs: 
+output:
+  format: excel  # 输出文件格式
+  number: 5000 # 输出名字数量

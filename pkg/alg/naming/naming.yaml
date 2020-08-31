@@ -1,0 +1,9 @@
+require: 
+  surname: 邝
+exclude: 
+  word: 
+  name: 
+  dirs: 
+output:
+  format: excel  # 输出文件格式
+  number: 1000 # 输出名字数量
