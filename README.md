@@ -8,6 +8,13 @@
 - **核心思路**：从诗句里分词，挑出 **2 个汉字** 作为名（加上姓氏组成 3 字姓名），再按配置和拼音规则过滤
 - **输出**：默认生成 `YYYY-MM-DD.xlsx`（写在当前目录）
 
+## 环境要求
+
+- **Go**：`go.mod` 标注为 Go 1.13（更高版本通常也可）
+- **Linux/macOS 编译依赖**：分词使用 `gojieba`（带 C/C++ 依赖），通常需要本机已安装编译工具链
+  - Ubuntu/Debian：`build-essential`
+  - macOS：Xcode Command Line Tools
+
 ## 快速开始
 
 ### 1) 配置 `naming.yaml`
@@ -29,14 +36,12 @@ output:
 ### 2) 运行
 
 ```bash
+cd /path/to/child-naming
 go run .
 ```
 
 运行时会打印加载进度与配置摘要，结束后在当前目录生成一个 Excel 文件，例如：`2025-12-12.xlsx`。
-
-> 提示：程序会读取配置文件 `naming.yaml`。如果你的工作目录不是仓库根目录，可以用环境变量指定：
->
-> - `CHILD_NAMING_CONF=/abs/path/to/naming.yaml`
+> 注意：程序会在“当前工作目录”读取 `naming.yaml`，所以请在仓库根目录运行，或把 `naming.yaml` 复制到你的工作目录。
 
 ## 配置说明（`naming.yaml`）
 
@@ -54,8 +59,17 @@ go run .
 
 ### output
 
-- **format**：输出格式（当前实现主要使用 `excel`）
+- **format**：输出格式（当前实现主流程固定走 Excel 输出，字段更多是“预留/说明”）
 - **number**：最多输出多少条结果（程序会读管道流并在达到上限后停止写入）
+
+## 输出说明（Excel）
+
+生成的 `YYYY-MM-DD.xlsx` 默认包含 4 列：
+
+- **名字**：完整姓名（3 个汉字）
+- **相关名字**：当前实现通常为空（字段预留）
+- **来源**：诗词分类 + 标题 + 作者
+- **意义**：命中诗句原文（用于理解语境）
 
 ## 数据说明
 
@@ -94,6 +108,26 @@ flowchart TD
   J --> K[写出 Excel: YYYY-MM-DD.xlsx]
 ```
 
+## 目录结构（关键文件）
+
+```
+.
+├── main.go                  # 入口：naming.Run()
+├── naming.yaml              # 配置文件（运行时从当前目录读取）
+├── data/
+│   ├── poetry/              # 诗词语料（按 tang/song 等目录分）
+│   ├── common/common.txt    # 常用字表（过滤生僻字）
+│   └── pinyin/pinyin.txt    # 单字拼音库（含声调）
+└── pkg/
+    ├── alg/
+    │   ├── splitword/       # 分词（gojieba）
+    │   └── naming/          # 从诗词生成 2 字名候选
+    ├── naming/              # 生成主流程 + 过滤链路
+    ├── conf/                # 读取 naming.yaml
+    ├── data/                # 读取语料/字表/拼音库
+    └── output/              # 输出 Excel
+```
+
 ## 预期行为示例（3 个 case）
 
 > 下面示例只描述“可验证的性质”，不会承诺固定输出某个具体名字（分词与语料会影响结果）。
@@ -111,9 +145,22 @@ flowchart TD
 ## 开发与测试
 
 ```bash
-go test ./... -v
+go test ./... -v \
+  -ldflags '-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn' \
+  -gcflags=all=-l
 ```
 
-说明：
+## 常见问题（FAQ）
 
-- `pkg/naming.Run()` / `output.SaveExcel()` 会 `os.Exit(0)`（设计上用于命令行执行后直接退出），因此对应的单测用 `t.Skip` 标注跳过。
+### 1) 提示找不到 `naming.yaml`
+
+原因是配置文件从“当前工作目录”读取。解决方式：
+
+- 在仓库根目录执行 `go run .`，或
+- 把 `naming.yaml` 复制到你当前执行命令的目录
+
+### 2) 编译 `gojieba` 失败
+
+通常是缺少编译工具链。请先安装：
+
+- Ubuntu/Debian：`sudo apt-get update && sudo apt-get install -y build-essential`

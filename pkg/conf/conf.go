@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 
 	yaml "gopkg.in/yaml.v2"
@@ -41,46 +39,18 @@ var defaultConf *config
 
 func init() {
 	defaultConf = &config{}
-	f, confPath, err := openConfFile()
+	f, err := os.Open(confFile)
 	if err != nil {
-		fmt.Printf("read conf file %s fail! err:%v", confFile, err)
+		fmt.Printf("read conf file %s fail!", confFile)
 		os.Exit(-1)
 	}
-	defer func() { _ = f.Close() }()
-
 	err = yaml.NewDecoder(f).Decode(defaultConf)
 	if nil != err {
-		fmt.Printf("decode conf file %s err:%v \r\n", confPath, err)
+		fmt.Printf("decode conf file %s err:%v \r\n", confFile, err)
 		os.Exit(-1)
 	}
 	bytes, err := json.Marshal(defaultConf)
 	fmt.Printf("get config:%s,err:%v\r\n", string(bytes), err)
-}
-
-func openConfFile() (*os.File, string, error) {
-	if p := strings.TrimSpace(os.Getenv("CHILD_NAMING_CONF")); p != "" {
-		f, err := os.Open(p)
-		return f, p, err
-	}
-
-	// 1) Try current working directory.
-	if f, err := os.Open(confFile); err == nil {
-		return f, confFile, nil
-	}
-
-	// 2) Try repository root inferred from this source file location.
-	// This makes `go test ./...` work regardless of working directory.
-	_, thisFile, _, ok := runtime.Caller(0)
-	if ok {
-		// /path/to/repo/pkg/conf/conf.go -> /path/to/repo
-		repoRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
-		p := filepath.Join(repoRoot, confFile)
-		if f, err := os.Open(p); err == nil {
-			return f, p, nil
-		}
-	}
-
-	return nil, "", fmt.Errorf("config file not found: %s (cwd or repo root); you can set env CHILD_NAMING_CONF", confFile)
 }
 
 func GetExcludeDirs() []string {
